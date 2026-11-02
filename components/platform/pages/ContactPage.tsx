@@ -10,7 +10,7 @@ import { useAppContext } from "@/hooks/useAppContext";
 import { AdminEditable } from "@/components/utility/AdminEditable";
 import ContactForm from "@/components/utility/contactForm";
 import { ChatInterface } from "@/components/myComponents/subs/ChatInterface";
-import { Mail, Phone, MapPin, MessageSquare } from "lucide-react";
+import { Mail, Phone, MapPin, MessageSquare, CreditCard, Building2 } from "lucide-react";
 
 export default function ContactPage() {
   const { currentBusiness } = useAppContext();
@@ -92,6 +92,46 @@ export default function ContactPage() {
                       className="font-bold text-lg"
                     />
                   </div>
+                </div>
+              )}
+
+              {(ss?.paymentAccountName || ss?.paymentBankName) && (
+                <div className="space-y-4 pt-4 border-t border-muted/20">
+                  <div className="text-sm uppercase text-muted-foreground tracking-widest font-black">Payment Details</div>
+                  {ss?.paymentAccountName && (
+                    <div className="flex gap-4 items-start">
+                      <div className="h-12 w-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent shrink-0">
+                        <CreditCard className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black uppercase text-muted-foreground tracking-widest">Account Name</p>
+                        <AdminEditable
+                          value={ss.paymentAccountName}
+                          model="siteSettings"
+                          id={ss.id}
+                          field="paymentAccountName"
+                          className="font-bold text-lg"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {ss?.paymentBankName && (
+                    <div className="flex gap-4 items-start">
+                      <div className="h-12 w-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent shrink-0">
+                        <Building2 className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black uppercase text-muted-foreground tracking-widest">Bank Name</p>
+                        <AdminEditable
+                          value={ss.paymentBankName}
+                          model="siteSettings"
+                          id={ss.id}
+                          field="paymentBankName"
+                          className="font-bold text-lg"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

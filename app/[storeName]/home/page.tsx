@@ -5,7 +5,7 @@
  * Uses StoreHome for flexible section management.
  */
 
-import StoreHome from "@/components/platform/StoreHome";
+import BusinessHomePage from "@/components/platform/pages/BusinessHomePage";
 import { getCachedBusiness } from "@/lib/getBusinessBySlug";
 import { notFound } from "next/navigation";
 
@@ -19,10 +19,5 @@ export default async function HomeRoute({ params }: Props) {
 
   if (!business) return notFound();
 
-  return (
-    <StoreHome 
-      business={business} 
-      activePageSlug="home" 
-    />
-  );
+  return <BusinessHomePage />;
 }

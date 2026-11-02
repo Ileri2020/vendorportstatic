@@ -78,7 +78,7 @@ export default async function StoreLayout({ children, params }: Props) {
      * useAppContext().currentBusiness — without fetching from the DB again.
      */
     <BusinessContextProvider business={business}>
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen">
         <StoreNavbar business={business} businessId={business.id} />
         <main className="flex-1">
           {children}

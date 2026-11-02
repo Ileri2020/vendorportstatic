@@ -1,9 +1,16 @@
 "use client";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useAppContext } from "@/hooks/useAppContext";
 import { Button } from "@/components/ui/button";
+
+type Category = {
+  id: string;
+  image: string;
+  name: string;
+  description: string;
+  productCount: number;
+};
 import { Plus, Edit3, Trash2 } from "lucide-react";
 import {
   Dialog,
@@ -16,6 +23,7 @@ import CategoryForm from "@/prisma/forms/CategoryForm";
 import axios from "axios";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Fetch categories from backend
 async function getCategories(businessId?: string) {
@@ -39,8 +47,17 @@ async function getCategories(businessId?: string) {
   }));
 }
 
-const FeaturedCategories = ({ businessId: businessIdProp }: { businessId?: string }) => {
-  const [categories, setCategories] = useState([]);
+const FeaturedCategories = ({
+  businessId: businessIdProp,
+  layout = "cards",
+  onCategorySelect,
+}: {
+  businessId?: string;
+  layout?: "cards" | "tabs";
+  onCategorySelect?: (categoryName: string) => void;
+}) => {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [activeTab, setActiveTab] = useState<string>("");
   const isAdmin = useIsAdmin();
   const { currentBusiness } = useAppContext();
 
@@ -53,8 +70,22 @@ const FeaturedCategories = ({ businessId: businessIdProp }: { businessId?: strin
   };
 
   useEffect(() => {
-    fetchCategories(); 
-  }, [resolvedBusinessId]); 
+    fetchCategories();
+  }, [resolvedBusinessId]);
+
+  useEffect(() => {
+    if (categories.length > 0) {
+      setActiveTab((prev) => prev || categories[0].id);
+    }
+  }, [categories]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const selected = categories.find((category: any) => category.id === value);
+    if (selected && onCategorySelect) {
+      onCategorySelect(selected.name);
+    }
+  };
 
   const handleDelete = async (id: string, name: string) => {
     if (confirm(`Are you sure you want to delete category "${name}"?`)) {
@@ -97,15 +128,73 @@ const FeaturedCategories = ({ businessId: businessIdProp }: { businessId?: strin
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {categories.length === 0 ? (
-            [1,2,3,4].map((i) => (
-              <div key={`empty-${i}`} className="aspect-[4/5] rounded-[2.5rem] bg-muted/40 animate-pulse border-2 border-dashed border-muted flex items-center justify-center">
-                 <div className="h-10 w-10 text-muted-foreground/20 italic">Loading...</div>
+        {categories.length === 0 ? (
+          <div className="space-y-4">
+            {[1, 3].map((i) => (
+              <div key={`empty-${i}`} className="rounded-3xl bg-muted/40 animate-pulse border-2 border-dashed border-muted p-6">
+                <div className="h-5 w-40 bg-muted/70 rounded mb-4" />
+                <div className="h-3 w-32 bg-muted/70 rounded mb-2" />
+                <div className="h-3 w-20 bg-muted/70 rounded" />
               </div>
-            ))
-          ) : (
-            categories.map((category: any) => (
+            ))}
+          </div>
+        ) : layout === "tabs" ? (
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            <TabsList className="overflow-x-auto pb-2 gap-2">
+              {categories.map((category: any) => (
+                <TabsTrigger
+                  key={category.id}
+                  value={category.id}
+                  className="min-w-[130px]"
+                >
+                  {category.name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {categories.map((category: any) => (
+              <TabsContent
+                key={category.id}
+                value={category.id}
+                className="rounded-3xl border border-muted/30 bg-white p-6 shadow-sm"
+              >
+                <div className="flex flex-col gap-4">
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-bold">{category.name}</h3>
+                    <p className="text-sm text-muted-foreground">{category.description || "No category description yet."}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-4 text-sm text-foreground font-medium">
+                    <span>{category.productCount || 0} products</span>
+                    <span className="text-muted-foreground">Category ID: {category.id}</span>
+                  </div>
+                  {isAdmin && (
+                    <div className="flex flex-wrap gap-3">
+                      <Dialog onOpenChange={(open) => !open && fetchCategories()}>
+                        <DialogTrigger asChild>
+                          <Button size="sm" className="rounded-2xl bg-accent text-white hover:bg-accent/90">
+                            Edit category
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl bg-transparent border-none p-0 shadow-none">
+                          <CategoryForm initialCategory={category} hideList={true} />
+                        </DialogContent>
+                      </Dialog>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDelete(category.id, category.name)}
+                      >
+                        Delete category
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {categories.map((category: any) => (
               <div key={category.id} className="group relative bg-white rounded-[2.5rem] overflow-hidden border-2 border-muted/20 hover:border-accent/20 transition-all shadow-sm hover:shadow-xl hover:scale-105 transform duration-300">
                 {/* Category Image */}
                 <div className="relative h-40 bg-muted/20 overflow-hidden">
@@ -147,9 +236,9 @@ const FeaturedCategories = ({ businessId: businessIdProp }: { businessId?: strin
                   </div>
                 )}
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

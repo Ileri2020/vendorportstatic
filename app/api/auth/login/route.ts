@@ -20,9 +20,13 @@ export async function POST(req: NextRequest) {
   // const body = searchParams.get('body') || null;
 
   // Parse JSON body
-  let body: any = null;
+  let body: { email?: unknown; password?: unknown } | null = null;
   try {
-    body = await req.json(); // This reads the JSON payload
+    const parsedBody: unknown = await req.json();
+    if (typeof parsedBody !== 'object' || parsedBody === null || Array.isArray(parsedBody)) {
+      return new Response('Invalid JSON body', { status: 400 });
+    }
+    body = parsedBody as { email?: unknown; password?: unknown };
   } catch (err) {
     return new Response('Invalid JSON', { status: 400 });
   }
@@ -30,6 +34,13 @@ export async function POST(req: NextRequest) {
   if (!body) {
     return new Response('Body is empty', { status: 400 });
   }
+
+  if (typeof body.email !== 'string' || typeof body.password !== 'string') {
+    return new Response('Email and password are required', { status: 400 });
+  }
+
+  const email = body.email;
+  const password = body.password;
 
   // const email = body.email
 
@@ -44,8 +55,8 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: body.email },
-          { contact: body.email }
+          { email },
+          { contact: email }
         ]
       },
     });
@@ -72,7 +83,7 @@ export async function POST(req: NextRequest) {
     }
 
     // User has password, verify it
-    const isValid = await bcrypt.compare(body.password, user.password);
+    const isValid = await bcrypt.compare(password, user.password);
     
     if (isValid) {
       const updatedUser = user;

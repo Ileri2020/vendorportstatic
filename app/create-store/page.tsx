@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { ShoppingBag, Pill, CheckCircle2, Loader2, Globe, Building2 } from 'lucide-react'
+import { ShoppingBag, Pill, CheckCircle2, Loader2, Globe, Building2, Upload, Mail, Phone, MapPin, CreditCard } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import { toast } from 'sonner'
@@ -33,9 +33,15 @@ export default function CreateStorePage() {
   const { user } = useAppContext();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     template: 'estore',
+    contactEmail: '',
+    contactPhone: '',
+    address: '',
+    paymentAccountName: '',
+    paymentBankName: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,16 +58,27 @@ export default function CreateStorePage() {
 
     setIsSubmitting(true);
     try {
-      const slug = formData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      const response = await axios.post('/api/dbhandler?model=business', {
-        name: formData.name,
-        template: formData.template,
-        ownerId: user.id,
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('template', formData.template);
+      formDataToSend.append('ownerId', user.id);
+      formDataToSend.append('contactEmail', formData.contactEmail);
+      formDataToSend.append('contactPhone', formData.contactPhone);
+      if (formData.address) formDataToSend.append('address', formData.address);
+      if (formData.paymentAccountName) formDataToSend.append('paymentAccountName', formData.paymentAccountName);
+      if (formData.paymentBankName) formDataToSend.append('paymentBankName', formData.paymentBankName);
+      if (logoFile) formDataToSend.append('file', logoFile);
+
+      const response = await axios.post('/api/dbhandler?model=business', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       if (response.data.id) {
          // backend now initializes project settings, home page and placeholder content
          toast.success('Store created successfully!');
+         const slug = formData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
          router.push(`/${slug}`);
       }
     } catch (error: any) {
@@ -106,41 +123,101 @@ export default function CreateStorePage() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                    Your store will be available at: <strong>/{formData.name.toLowerCase().replace(/\s+/g, '-') || 'your-store-name'}</strong>
+                   <span className="block mt-1 text-sm text-muted-foreground">Only the store name is required. You can add logo, contact details, payment info and address later from your store dashboard.</span>
                 </p>
               </div>
 
-              {/* Template Selection */}
+              {/* Logo Upload */}
+              <div className="space-y-3">
+                <Label htmlFor="logo" className="text-lg font-semibold">Store Logo (Optional)</Label>
+                <div className="relative">
+                  <Input
+                    id="logo"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-accent file:text-white hover:file:bg-accent/90"
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Upload a logo for your store. If not provided, we'll use your store name as text.
+                </p>
+              </div>
+
+              {/* Contact Information */}
               <div className="space-y-4">
-                <Label className="text-lg font-semibold">Choose a Template</Label>
-                <RadioGroup 
-                  defaultValue="estore"
-                  value={formData.template}
-                  onValueChange={(v) => setFormData({ ...formData, template: v })}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                >
-                  {templates.map((tpl) => (
-                    <div key={tpl.id}>
-                      <RadioGroupItem
-                        value={tpl.id}
-                        id={tpl.id}
-                        className="peer sr-only"
-                      />
-                      <Label
-                        htmlFor={tpl.id}
-                        className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-6 hover:bg-accent/5 hover:border-accent/50 peer-data-[state=checked]:border-accent peer-data-[state=checked]:bg-accent/5 cursor-pointer transition-all h-full"
-                      >
-                        <div className={`p-4 rounded-full ${tpl.color} text-white mb-4`}>
-                           <tpl.icon className="h-8 w-8" />
-                        </div>
-                        <div className="text-center">
-                          <h3 className="text-xl font-bold mb-1">{tpl.name}</h3>
-                          <p className="text-sm text-muted-foreground">{tpl.description}</p>
-                        </div>
-                        <CheckCircle2 className={`mt-4 h-6 w-6 text-accent transition-opacity ${formData.template === tpl.id ? 'opacity-100' : 'opacity-0'}`} />
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
+                <Label className="text-lg font-semibold">Contact Information</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="contactEmail" className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Email
+                    </Label>
+                    <Input
+                      id="contactEmail"
+                      type="email"
+                      placeholder="support@yourstore.com"
+                      value={formData.contactEmail}
+                      onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="contactPhone" className="flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      Phone
+                    </Label>
+                    <Input
+                      id="contactPhone"
+                      type="tel"
+                      placeholder="+1 (555) 123-4567"
+                      value={formData.contactPhone}
+                      onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Physical Address (Optional)
+                  </Label>
+                  <Input
+                    id="address"
+                    placeholder="123 Main St, City, State, ZIP"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Payment Information */}
+              <div className="space-y-4">
+                <Label className="text-lg font-semibold">Payment Information</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="paymentAccountName" className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      Account Name
+                    </Label>
+                    <Input
+                      id="paymentAccountName"
+                      placeholder="John Doe"
+                      value={formData.paymentAccountName}
+                      onChange={(e) => setFormData({ ...formData, paymentAccountName: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="paymentBankName" className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Bank Name
+                    </Label>
+                    <Input
+                      id="paymentBankName"
+                      placeholder="Bank of America"
+                      value={formData.paymentBankName}
+                      onChange={(e) => setFormData({ ...formData, paymentBankName: e.target.value })}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="pt-4">

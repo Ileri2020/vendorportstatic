@@ -312,7 +312,6 @@ export async function GET(req: NextRequest) {
     const where: any = {};
     if (bid) {
       if (
-        model === "projectSettings" ||
         model === "category" ||
         model === "product" ||
         model === "coupon" ||
@@ -389,6 +388,7 @@ export async function POST(req: NextRequest) {
   const prismaModel = modelMap[model];
   const contentType = req.headers.get("content-type") || "";
   let body: Record<string, any> = {};
+  let uploadedFileUrl: string | undefined;
 
   try {
     /**
@@ -406,6 +406,7 @@ export async function POST(req: NextRequest) {
       // Handle file upload
       if (file) {
         const uploadRes = await handleUpload(file);
+        uploadedFileUrl = uploadRes.url;
 
         if (model === "category" || model === "user") {
           body.image = uploadRes.url;
@@ -580,6 +581,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Business name already exists" }, { status: 409 });
       }
 
+      // Handle logo upload
+      let logoUrl: string | undefined = undefined;
+      if (uploadedFileUrl) {
+        logoUrl = uploadedFileUrl;
+      }
+
       const created = await prisma.business.create({
         data: {
           name: normalized,
@@ -590,8 +597,13 @@ export async function POST(req: NextRequest) {
               aboutText: "Write about your business here",
               heroTitle: "Welcome to our store",
               heroSubtitle: "Browse our products and enjoy great deals",
-              contactEmail: "support@example.com",
-              contactPhone: "000-000-0000",
+              contactEmail: body.contactEmail || "support@example.com",
+              contactPhone: body.contactPhone || "000-000-0000",
+              address: body.address,
+              paymentAccountName: body.paymentAccountName,
+              paymentBankName: body.paymentBankName,
+              iconImageUrl: logoUrl,
+              iconMode: logoUrl ? "image" : "text",
             },
           },
         },
@@ -633,9 +645,9 @@ export async function POST(req: NextRequest) {
           categoryIds.push(cat.id);
         }
 
-        // create 5 placeholder products
+        // create 3 placeholder products
         const productIds: string[] = [];
-        for (let i = 1; i <= 5; i++) {
+        for (let i = 1; i <= 3; i++) {
           const prod = await prisma.product.create({
             data: {
               name: `Placeholder Product ${i}`,

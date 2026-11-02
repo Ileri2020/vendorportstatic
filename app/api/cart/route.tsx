@@ -143,9 +143,13 @@ export async function PUT(req: NextRequest) {
     // const body = searchParams.get('body') || null;
   
     // Parse JSON body
-    let body = null;
+    let body: Record<string, any> | null = null;
     try {
-      body = await req.json(); // This reads the JSON payload
+      const parsedBody: unknown = await req.json();
+      if (typeof parsedBody !== 'object' || parsedBody === null || Array.isArray(parsedBody)) {
+        return new Response('Body must be a JSON object', { status: 400 });
+      }
+      body = parsedBody as Record<string, any>;
     } catch (err) {
       return new Response('Invalid JSON', { status: 400 });
     }
@@ -162,7 +166,7 @@ export async function PUT(req: NextRequest) {
 
     // ✏️ Update Object
   try {
-    const { id, ...updatedata } = body as any;
+    const { id, ...updatedata } = body;
     console.log("id removed from :", updatedata)
     const updatedItem = await prismaModel.update({
       where: {id},

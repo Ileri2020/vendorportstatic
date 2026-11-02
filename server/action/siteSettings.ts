@@ -22,6 +22,8 @@ interface SiteSettingsInput {
   twitter?: string;
   linkedin?: string;
   address?: string;
+  paymentAccountName?: string;
+  paymentBankName?: string;
   headerCTA?: string;
   footerText?: string;
   newsletterTitle?: string;
@@ -53,6 +55,9 @@ export async function getSiteSettings(businessId?: string) {
             contactDesc: "Contact us today for product inquiries, order support, or business collaborations.",
             contactEmail: "support@example.com",
             contactPhone: "000-000-0000",
+            address: "",
+            paymentAccountName: "",
+            paymentBankName: "",
           },
         });
       }
@@ -68,6 +73,9 @@ export async function getSiteSettings(businessId?: string) {
             contactDesc: "Contact us today for product inquiries, order support, or business collaborations.",
             contactEmail: "support@example.com",
             contactPhone: "000-000-0000",
+            address: "",
+            paymentAccountName: "",
+            paymentBankName: "",
           },
         });
       }

@@ -10,7 +10,7 @@
  * Dark/light mode toggle is shared platform infrastructure.
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useMounted } from "@/hooks/use-mounted";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -65,11 +65,10 @@ import {
   Sun,
 } from "lucide-react";
 import { GlobalCart } from "@/components/utility/GlobalCart";
-import { AIProductSearch } from "@/components/myComponents/subs/AIProductSearch";
+import StoreSidebar from "@/components/platform/StoreSidebar";
 import { toast } from "sonner";
 import { updateSiteSettings } from "@/server/action/siteSettings";
 import { AdminEditable } from "@/components/utility/AdminEditable";
-import { useTheme } from "next-themes";
 
 interface Business {
   id: string;
@@ -99,7 +98,6 @@ const StoreNavbar = ({
   const { storeName } = useParams();
   const isAdmin = useIsBusinessAdmin();
   const mounted = useMounted();
-  const { theme, setTheme } = useTheme();
 
   // Icon settings (editable, but not DB-nav-driven)
   const [iconMode, setIconMode] = useState(business.siteSettings?.iconMode || "text");
@@ -136,6 +134,14 @@ const StoreNavbar = ({
   const showText  = iconMode !== "image";
   const showImage = iconMode !== "text" && Boolean(iconImageUrl);
   const renderedIconText = iconText?.trim() || business.name;
+  const iconWrapperRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!iconWrapperRef.current) return;
+    iconWrapperRef.current.style.setProperty("--wrapper-size", `${iconImageWidth + 12}px`);
+    iconWrapperRef.current.style.setProperty("--image-size", `${iconImageWidth}px`);
+    iconWrapperRef.current.style.setProperty("--icon-text-size", `${iconFontSize}px`);
+  }, [iconImageWidth, iconImageHeight, iconFontSize]);
 
   /** Build href for each static page */
   const pageHref = (slug: string) =>
@@ -150,18 +156,19 @@ const StoreNavbar = ({
       <div className="flex items-center gap-3">
         <div className="relative">
           <Link href={`/${storeName}`} className="flex items-center gap-2">
-            {/* eslint-disable-next-line */}
             <div
-              className="flex items-center justify-center overflow-hidden rounded-2xl border border-accent/20 bg-accent/10"
-              style={{ width: iconImageWidth + 12, minWidth: 40, height: iconImageHeight + 12 }}
+              ref={iconWrapperRef}
+              className="flex items-center justify-center overflow-hidden rounded-2xl border border-accent/20 bg-accent/10 min-w-[40px]"
             >
               {showImage && (
-                <img src={iconImageUrl} alt={renderedIconText} className="object-cover"
-                  style={{ width: iconImageWidth, height: iconImageHeight }} />
+                <img
+                  src={iconImageUrl}
+                  alt={renderedIconText}
+                  className="object-cover w-[var(--image-size)] h-[var(--image-size)]"
+                />
               )}
               {showText && (
-                <span className="font-black text-center truncate"
-                  style={{ fontSize: iconFontSize, color: iconFontColor, lineHeight: 1 }}>
+                <span className="font-black text-center truncate text-[var(--icon-text-size)] leading-[1]">
                   {renderedIconText}
                 </span>
               )}
@@ -296,28 +303,6 @@ const StoreNavbar = ({
           </>
         )}
 
-        {/* AI search */}
-        {businessId && (
-          <AIProductSearch businessId={businessId}>
-            <Button variant="ghost" size="icon" title="AI Product Search" className="hover:bg-accent/10 hover:text-accent">
-              <Camera className="h-5 w-5" />
-            </Button>
-          </AIProductSearch>
-        )}
-
-        {/* Dark / Light toggle */}
-        {mounted && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            title="Toggle theme"
-            className="hover:bg-accent/10 hover:text-accent"
-          >
-            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
-        )}
-
         {/* Cart */}
         <GlobalCart />
 
@@ -341,54 +326,24 @@ const StoreNavbar = ({
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-[300px] sm:w-[400px] border-l-4 border-accent">
-            <SheetHeader className="text-left mb-8">
-              <SheetTitle className="text-2xl font-black flex items-center gap-2">
-                <div className="h-10 w-10 bg-accent rounded-xl flex items-center justify-center text-white shrink-0">
-                  {business.name?.[0] || "B"}
-                </div>
-                <span>{business.name || "Store"}</span>
-              </SheetTitle>
+            <SheetHeader>
+              <SheetTitle>{business.name || "Store Menu"}</SheetTitle>
             </SheetHeader>
             <div className="flex flex-col gap-6">
-              {businessId && (
-                <AIProductSearch businessId={businessId}>
-                  <Button className="w-full h-12 bg-gradient-to-r from-accent to-primary text-white font-bold rounded-xl gap-2">
-                    <Camera className="h-5 w-5" /> AI Product Search
-                  </Button>
-                </AIProductSearch>
-              )}
-
-              {/* Static nav links in mobile drawer */}
               {STATIC_PAGES.map((page) => (
                 <Link
                   key={page.slug}
                   href={pageHref(page.slug)}
-                  className="font-bold text-lg uppercase tracking-widest hover:text-accent transition-colors flex items-center justify-between group"
+                  className="font-bold text-lg uppercase tracking-widest hover:text-accent transition-colors"
                 >
                   {page.name}
-                  <ChevronRight className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Link>
               ))}
-
-              <div className="h-px bg-border my-2" />
-
-              {/* Dark/light in drawer */}
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="flex items-center gap-3 font-bold text-sm text-muted-foreground hover:text-accent transition-colors"
-              >
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                {theme === "dark" ? "Light Mode" : "Dark Mode"}
-              </button>
-
               {mounted && isAdmin && (
                 <Link href={`/${storeName}/analytics`} className="flex items-center gap-3 text-accent font-black">
                   <BarChart3 className="h-5 w-5" /> OWNER ANALYTICS
                 </Link>
               )}
-              <Button className="w-full bg-accent hover:bg-accent/90 text-white font-bold h-12 rounded-xl">
-                Visit Platform
-              </Button>
             </div>
           </SheetContent>
         </Sheet>
